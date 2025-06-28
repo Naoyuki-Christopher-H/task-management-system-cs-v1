@@ -4,9 +4,10 @@ namespace task_management_system_cs_v1.Models
 {
     public class TaskItem
     {
-        public string Description { get; set; }
+        // Make properties nullable or initialize with default values
+        public string Description { get; set; } = string.Empty;
         public DateTime DueDate { get; set; }
-        public string Priority { get; set; }
+        public string Priority { get; set; } = "Medium"; // Default priority
         public bool IsCompleted { get; set; }
         public DateTime CreatedDate { get; set; }
 
