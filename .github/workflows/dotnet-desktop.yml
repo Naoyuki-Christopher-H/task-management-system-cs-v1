@@ -1,0 +1,136 @@
+# ================================================
+# Workflow Name: Task Management System CI/CD Pipeline
+# Purpose: Build, test, and package WPF application
+# Environment: Windows runner with .NET 7.x
+# ================================================
+
+name: Task Management System CI/CD
+
+# ----------------------------------
+# Trigger Conditions
+# ----------------------------------
+on:
+  push:
+    branches: [ "main", "master" ]  # Triggers on push to main branches
+    paths:                          # Only trigger when relevant files change
+      - '**.cs'
+      - '**.xaml'
+      - '**.csproj'
+      - '**.sln'
+  
+  pull_request:
+    branches: [ "main", "master" ]  # Triggers on PRs to main branches
+    paths:
+      - '**.cs'
+      - '**.xaml'
+      - '**.csproj'
+      - '**.sln'
+
+  workflow_dispatch:                # Manual trigger option
+
+# ----------------------------------
+# Global Environment Variables
+# ----------------------------------
+env:
+  DOTNET_VERSION: '7.0.x'           # .NET 7 SDK version
+  SOLUTION_FILE: 'task-management-system-cs-v1.sln'
+  WAP_PROJECT: 'TaskManager.Package\TaskManager.Package.wapproj'
+  BUILD_CONFIGURATION: 'Release'
+
+# ----------------------------------
+# Job Definitions
+# ----------------------------------
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+    # ----------------------------------
+    # Step 1: Checkout Code
+    # ----------------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0              # Get full history for version info
+
+    # ----------------------------------
+    # Step 2: Setup .NET SDK
+    # ----------------------------------
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    # ----------------------------------
+    # Step 3: Restore Dependencies
+    # ----------------------------------
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_FILE }}
+      
+    # ----------------------------------
+    # Step 4: Build Solution
+    # ----------------------------------
+    - name: Build solution
+      run: dotnet build ${{ env.SOLUTION_FILE }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+    # ----------------------------------
+    # Step 5: Run Unit Tests
+    # ----------------------------------
+    - name: Run tests
+      run: dotnet test ${{ env.SOLUTION_FILE }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal
+
+  package-and-sign:
+    name: Package and Sign
+    needs: build-and-test          # Depends on successful build/test
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+    # ----------------------------------
+    # Step 1: Checkout Code
+    # ----------------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # ----------------------------------
+    # Step 2: Setup MSBuild
+    # ----------------------------------
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1
+
+    # ----------------------------------
+    # Step 3: Decode Signing Certificate
+    # ----------------------------------
+    - name: Decode signing certificate
+      shell: pwsh
+      run: |
+        $pfx_cert = [System.Convert]::FromBase64String("${{ secrets.BASE64_ENCODED_PFX }}")
+        [System.IO.File]::WriteAllBytes("SigningCertificate.pfx", $pfx_cert)
+      env:
+        BASE64_ENCODED_PFX: ${{ secrets.BASE64_ENCODED_PFX }}
+
+    # ----------------------------------
+    # Step 4: Build WAP Project
+    # ----------------------------------
+    - name: Build WAP project
+      shell: pwsh
+      run: |
+        msbuild ${{ env.WAP_PROJECT }} `
+          /p:Configuration=${{ env.BUILD_CONFIGURATION }} `
+          /p:UapAppxPackageBuildMode=SideLoadOnly `
+          /p:AppxBundle=Never `
+          /p:PackageCertificateKeyFile=SigningCertificate.pfx `
+          /p:PackageCertificatePassword=${{ secrets.PFX_KEY }}
+
+    # ----------------------------------
+    # Step 5: Upload Artifact
+    # ----------------------------------
+    - name: Upload package
+      uses: actions/upload-artifact@v3
+      with:
+        name: TaskManager-Package
+        path: |
+          TaskManager.Package\AppPackages\**\*.msix
+          TaskManager.Package\AppPackages\**\*.appx
