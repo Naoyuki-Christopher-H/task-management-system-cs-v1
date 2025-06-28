@@ -10,14 +10,32 @@ namespace task_management_system_cs_v1
     /// </summary>
     public partial class LoginWindow : Window
     {
+        private PasswordBox passwordBox;
+        private PasswordBox registerPasswordBox;
+        private PasswordBox registerConfirmPasswordBox;
+
         public LoginWindow()
         {
             InitializeComponent();
             var fileService = new FileService();
             DataContext = new LoginViewModel(fileService);
-            PasswordBox.PasswordChanged += (sender, e) => ((LoginViewModel)DataContext).Password = PasswordBox.Password;
-            RegisterPasswordBox.PasswordChanged += (sender, e) => ((LoginViewModel)DataContext).RegisterPassword = RegisterPasswordBox.Password;
-            RegisterConfirmPasswordBox.PasswordChanged += (sender, e) => ((LoginViewModel)DataContext).RegisterConfirmPassword = RegisterConfirmPasswordBox.Password;
+
+            // Hook up password boxes after initialization
+            passwordBox = (PasswordBox)FindName("PasswordBox");
+            registerPasswordBox = (PasswordBox)FindName("RegisterPasswordBox");
+            registerConfirmPasswordBox = (PasswordBox)FindName("RegisterConfirmPasswordBox");
+
+            if (passwordBox != null)
+                passwordBox.PasswordChanged += (sender, e) =>
+                    ((LoginViewModel)DataContext).Password = passwordBox.Password;
+
+            if (registerPasswordBox != null)
+                registerPasswordBox.PasswordChanged += (sender, e) =>
+                    ((LoginViewModel)DataContext).RegisterPassword = registerPasswordBox.Password;
+
+            if (registerConfirmPasswordBox != null)
+                registerConfirmPasswordBox.PasswordChanged += (sender, e) =>
+                    ((LoginViewModel)DataContext).RegisterConfirmPassword = registerConfirmPasswordBox.Password;
         }
     }
 }
