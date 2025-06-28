@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Input;
 using task_management_system_cs_v1.Models;
 using task_management_system_cs_v1.Services;
@@ -12,67 +12,38 @@ using task_management_system_cs_v1.Utilities;
 namespace task_management_system_cs_v1.ViewModels
 {
     /// <summary>
-    /// ViewModel for the main task management interface
+    /// ViewModel for main application window handling all task management logic
     /// Implements INotifyPropertyChanged for data binding
     /// </summary>
     public class MainViewModel : INotifyPropertyChanged
     {
         private readonly FileService _fileService;
         private readonly string _currentUser;
-
-        // Initialize fields with default values
         private string _searchTerm = string.Empty;
         private bool _showCompletedTasks;
 
         /// <summary>
-        /// Collection of tasks to display
+        /// Collection of tasks to display in UI
         /// </summary>
         public ObservableCollection<TaskItem> Tasks { get; } = new ObservableCollection<TaskItem>();
 
         /// <summary>
-        /// Collection of command history items
+        /// Collection of command history items from last 12 hours
         /// </summary>
         public ObservableCollection<string> CommandHistory { get; } = new ObservableCollection<string>();
 
-        /// <summary>
-        /// Command for adding new tasks
-        /// </summary>
-        public ICommand AddTaskCommand { get; }
-
-        /// <summary>
-        /// Command for deleting tasks
-        /// </summary>
-        public ICommand DeleteTaskCommand { get; }
-
-        /// <summary>
-        /// Command for toggling task status
-        /// </summary>
-        public ICommand ToggleTaskStatusCommand { get; }
-
-        /// <summary>
-        /// Command for searching tasks
-        /// </summary>
-        public ICommand SearchCommand { get; }
-
-        /// <summary>
-        /// Command for toggling view between completed/pending tasks
-        /// </summary>
-        public ICommand ToggleViewCommand { get; }
-
-        /// <summary>
-        /// Description for new task
-        /// </summary>
+        // Task creation properties with default values
+        public string NewTaskTitle { get; set; } = string.Empty;
         public string NewTaskDescription { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Due date for new task
-        /// </summary>
         public DateTime NewTaskDueDate { get; set; } = DateTime.Now.AddDays(1);
+        public string NewTaskPriority { get; set; } = "MEDIUM";
 
-        /// <summary>
-        /// Priority for new task
-        /// </summary>
-        public string NewTaskPriority { get; set; } = "Medium";
+        // Commands for UI actions
+        public ICommand AddTaskCommand { get; }
+        public ICommand DeleteTaskCommand { get; }
+        public ICommand ToggleTaskStatusCommand { get; }
+        public ICommand SearchCommand { get; }
+        public ICommand ToggleViewCommand { get; }
 
         /// <summary>
         /// Search term for filtering tasks
@@ -84,11 +55,13 @@ namespace task_management_system_cs_v1.ViewModels
             {
                 _searchTerm = value;
                 OnPropertyChanged();
+                FilterTasks();
             }
         }
 
         /// <summary>
         /// Flag indicating whether to show completed tasks
+        /// Triggers task filtering when changed
         /// </summary>
         public bool ShowCompletedTasks
         {
@@ -102,7 +75,7 @@ namespace task_management_system_cs_v1.ViewModels
         }
 
         /// <summary>
-        /// Initializes a new instance of the MainViewModel
+        /// Initializes ViewModel with dependencies
         /// </summary>
         public MainViewModel(FileService fileService, string username)
         {
@@ -122,41 +95,19 @@ namespace task_management_system_cs_v1.ViewModels
         }
 
         /// <summary>
-        /// Loads tasks from file service
+        /// Adds new task with validation
         /// </summary>
-        private void LoadTasks()
+        private void AddTask(object parameter)
         {
-            Tasks.Clear();
-            var tasks = _fileService.GetUserTasks(_currentUser);
-            foreach (var task in tasks.Where(t => !t.IsCompleted))
+            if (string.IsNullOrWhiteSpace(NewTaskTitle))
             {
-                Tasks.Add(task);
-            }
-        }
-
-        /// <summary>
-        /// Loads command history from file service
-        /// </summary>
-        private void LoadCommandHistory()
-        {
-            CommandHistory.Clear();
-            var commands = _fileService.GetLastCommands(_currentUser);
-            foreach (var cmd in commands)
-            {
-                CommandHistory.Add(cmd.Split('|')[2]); // Just show the command part
-            }
-        }
-
-        /// <summary>
-        /// Adds a new task
-        /// </summary>
-        private void AddTask(object? parameter)
-        {
-            if (string.IsNullOrWhiteSpace(NewTaskDescription))
+                MessageBox.Show("Task title is required.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
+            }
 
             var newTask = new TaskItem
             {
+                Title = NewTaskTitle,
                 Description = NewTaskDescription,
                 DueDate = NewTaskDueDate,
                 Priority = NewTaskPriority,
@@ -165,39 +116,42 @@ namespace task_management_system_cs_v1.ViewModels
 
             Tasks.Add(newTask);
             SaveTasks();
-            _fileService.LogCommand(_currentUser, $"Added task: {NewTaskDescription}");
+            _fileService.LogCommand(_currentUser, $"Added task: {NewTaskTitle}");
             LoadCommandHistory();
 
-            // Reset new task fields
+            // Reset form fields
+            NewTaskTitle = string.Empty;
             NewTaskDescription = string.Empty;
+            OnPropertyChanged(nameof(NewTaskTitle));
             OnPropertyChanged(nameof(NewTaskDescription));
         }
 
         /// <summary>
-        /// Deletes a task
+        /// Deletes specified task
         /// </summary>
-        private void DeleteTask(object? parameter)
+        private void DeleteTask(object parameter)
         {
             if (parameter is TaskItem task)
             {
                 Tasks.Remove(task);
                 SaveTasks();
-                _fileService.LogCommand(_currentUser, $"Deleted task: {task.Description}");
+                _fileService.LogCommand(_currentUser, $"Deleted task: {task.Title}");
                 LoadCommandHistory();
             }
         }
 
         /// <summary>
-        /// Toggles task completion status
+        /// Toggles task completion status with date tracking
         /// </summary>
-        private void ToggleTaskStatus(object? parameter)
+        private void ToggleTaskStatus(object parameter)
         {
             if (parameter is TaskItem task)
             {
                 task.IsCompleted = !task.IsCompleted;
+                task.CompletedDate = task.IsCompleted ? DateTime.Now : null;
                 SaveTasks();
                 _fileService.LogCommand(_currentUser,
-                    $"Marked task as {(task.IsCompleted ? "completed" : "pending")}: {task.Description}");
+                    $"Marked task as {(task.IsCompleted ? "completed" : "pending")}: {task.Title}");
                 FilterTasks();
                 LoadCommandHistory();
             }
@@ -206,17 +160,18 @@ namespace task_management_system_cs_v1.ViewModels
         /// <summary>
         /// Filters tasks based on search term and view mode
         /// </summary>
-        private void FilterTasks(object? parameter = null)
+        private void FilterTasks(object parameter = null)
         {
-            Tasks.Clear();
             var allTasks = _fileService.GetUserTasks(_currentUser);
-            var filteredTasks = allTasks.Where(t =>
-                (ShowCompletedTasks || !t.IsCompleted) &&
-                (string.IsNullOrWhiteSpace(SearchTerm) ||
-                 t.Description.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)))
+            var filteredTasks = allTasks
+                .Where(t => ShowCompletedTasks || !t.IsCompleted)
+                .Where(t => string.IsNullOrWhiteSpace(SearchTerm) ||
+                           t.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                           t.Description.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(t => t.DueDate)
-                .ThenByDescending(t => t.Priority);
+                .ThenBy(t => t.Priority == "HIGH" ? 0 : t.Priority == "MEDIUM" ? 1 : 2);
 
+            Tasks.Clear();
             foreach (var task in filteredTasks)
             {
                 Tasks.Add(task);
@@ -226,26 +181,53 @@ namespace task_management_system_cs_v1.ViewModels
         /// <summary>
         /// Toggles between showing completed/pending tasks
         /// </summary>
-        private void ToggleView(object? parameter)
+        private void ToggleView(object parameter)
         {
             ShowCompletedTasks = !ShowCompletedTasks;
         }
 
         /// <summary>
-        /// Saves tasks to file
+        /// Loads tasks from file service
+        /// </summary>
+        private void LoadTasks()
+        {
+            Tasks.Clear();
+            var tasks = _fileService.GetUserTasks(_currentUser)
+                .Where(t => !t.IsCompleted);
+
+            foreach (var task in tasks)
+            {
+                Tasks.Add(task);
+            }
+        }
+
+        /// <summary>
+        /// Loads command history from past 12 hours
+        /// </summary>
+        private void LoadCommandHistory()
+        {
+            CommandHistory.Clear();
+            var commands = _fileService.GetLastCommands(_currentUser)
+                .Select(c => c.Split('|')[2]); // Extract just the command text
+
+            foreach (var cmd in commands)
+            {
+                CommandHistory.Add(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Saves current task list to file
         /// </summary>
         private void SaveTasks()
         {
             _fileService.SaveUserTasks(_currentUser, Tasks.ToList());
         }
 
-        /// <summary>
-        /// Event for property change notifications
-        /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
-        /// Raises the PropertyChanged event
+        /// Raises PropertyChanged event for data binding
         /// </summary>
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {

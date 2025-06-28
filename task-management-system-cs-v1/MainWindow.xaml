@@ -5,173 +5,115 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:task_management_system_cs_v1"
         mc:Ignorable="d"
-        Title="Task Management System" 
-        Height="600" 
-        Width="1000"
+        Title="Task Management System" Height="650" Width="1000"
         WindowStartupLocation="CenterScreen">
 
-    <!-- Window Resources - Contains converters used in this window -->
-    <Window.Resources>
-        <!-- Custom converter that changes boolean to view toggle text -->
-        <local:BoolToViewTextConverter x:Key="BoolToViewTextConverter"/>
-    </Window.Resources>
-
     <Grid>
-        <!-- Main layout with two columns: tasks (left) and command history (right) -->
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
-            <!-- Main content area -->
-            <ColumnDefinition Width="250"/>
-            <!-- Command history panel -->
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
         <!-- Main Content Area -->
         <Grid Grid.Column="0" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <!-- Add Task Section -->
                 <RowDefinition Height="Auto"/>
-                <!-- Search Section -->
                 <RowDefinition Height="*"/>
-                <!-- Tasks List -->
             </Grid.RowDefinitions>
 
-            <!-- Add New Task Section -->
+            <!-- Add Task Section -->
             <GroupBox Grid.Row="0" Header="Add New Task" Margin="0,0,0,10">
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Task Description -->
-                    <Label Content="Description:" Grid.Column="0" Margin="5"/>
-                    <TextBox Grid.Column="1" 
-                             Text="{Binding NewTaskDescription, UpdateSourceTrigger=PropertyChanged}" 
+                    <!-- Task Title -->
+                    <Label Grid.Row="0" Grid.Column="0" Content="Title:" Margin="5"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3"
+                             Text="{Binding NewTaskTitle, UpdateSourceTrigger=PropertyChanged}" 
                              Margin="5"/>
 
-                    <!-- Due Date Selection -->
-                    <Label Content="Due Date:" Grid.Column="2" Margin="5"/>
-                    <DatePicker Grid.Column="3" 
-                                SelectedDate="{Binding NewTaskDueDate}" 
-                                Margin="5" 
-                                Width="120"/>
+                    <!-- Task Description -->
+                    <Label Grid.Row="1" Grid.Column="0" Content="Description:" Margin="5"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                             Text="{Binding NewTaskDescription, UpdateSourceTrigger=PropertyChanged}" 
+                             Margin="5" Height="60" AcceptsReturn="True" TextWrapping="Wrap"/>
 
-                    <!-- Priority Selection -->
-                    <Label Content="Priority:" Grid.Column="4" Margin="5"/>
-                    <ComboBox Grid.Column="5" 
-                              SelectedValue="{Binding NewTaskPriority}" 
-                              Margin="5" 
-                              Width="100">
-                        <ComboBoxItem Content="High"/>
-                        <ComboBoxItem Content="Medium" IsSelected="True"/>
-                        <ComboBoxItem Content="Low"/>
+                    <!-- Due Date and Priority -->
+                    <Label Grid.Row="2" Grid.Column="0" Content="Due Date:" Margin="5"/>
+                    <DatePicker Grid.Row="2" Grid.Column="1"
+                               SelectedDate="{Binding NewTaskDueDate}" 
+                               Margin="5" Width="150"/>
+
+                    <Label Grid.Row="2" Grid.Column="2" Content="Priority:" Margin="5"/>
+                    <ComboBox Grid.Row="2" Grid.Column="3"
+                             SelectedValue="{Binding NewTaskPriority}" 
+                             Margin="5" Width="100">
+                        <ComboBoxItem Content="LOW"/>
+                        <ComboBoxItem Content="MEDIUM" IsSelected="True"/>
+                        <ComboBoxItem Content="HIGH"/>
                     </ComboBox>
 
                     <!-- Add Task Button -->
-                    <Button Grid.Column="6" 
-                            Content="Add Task" 
-                            Command="{Binding AddTaskCommand}" 
-                            Margin="5" 
-                            Padding="10,5"/>
+                    <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4"
+                           Content="Add Task" 
+                           Command="{Binding AddTaskCommand}" 
+                           Margin="5" Padding="10,5" HorizontalAlignment="Center"/>
                 </Grid>
             </GroupBox>
 
-            <!-- Search and Filter Section -->
-            <GroupBox Grid.Row="1" Header="Search and Filter" Margin="0,0,0,10">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <!-- Tasks List -->
+            <ListView Grid.Row="2" ItemsSource="{Binding Tasks}" Margin="5">
+                <ListView.View>
+                    <GridView>
+                        <!-- Completed Checkbox (Fixed with TwoWay binding) -->
+                        <GridViewColumn Header="Completed" Width="80">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsCompleted, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                              Command="{Binding DataContext.ToggleTaskStatusCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                              CommandParameter="{Binding}" 
+                                              HorizontalAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
 
-                    <!-- Search Box -->
-                    <TextBox Grid.Column="0" 
-                             Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}" 
-                             Margin="5" 
-                             Padding="5">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
+                        <GridViewColumn Header="Title" DisplayMemberBinding="{Binding Title}" Width="150"/>
+                        <GridViewColumn Header="Description" DisplayMemberBinding="{Binding Description}" Width="250"/>
+                        <GridViewColumn Header="Due Date" DisplayMemberBinding="{Binding DueDate, StringFormat=yyyy-MM-dd}" Width="100"/>
+                        <GridViewColumn Header="Priority" DisplayMemberBinding="{Binding Priority}" Width="80"/>
 
-                    <!-- Search Button -->
-                    <Button Grid.Column="1" 
-                            Content="Search" 
-                            Command="{Binding SearchCommand}" 
-                            Margin="5" 
-                            Padding="10,5"/>
-
-                    <!-- Toggle View Button -->
-                    <Button Grid.Column="2" 
-                            Content="{Binding ShowCompletedTasks, Converter={StaticResource BoolToViewTextConverter}}" 
-                            Command="{Binding ToggleViewCommand}" 
-                            Margin="5" 
-                            Padding="10,5"/>
-                </Grid>
-            </GroupBox>
-
-            <!-- Tasks List Display -->
-            <GroupBox Grid.Row="2" Header="Tasks">
-                <ListView ItemsSource="{Binding Tasks}" Margin="5">
-                    <ListView.View>
-                        <GridView>
-                            <!-- Completed Status Column -->
-                            <GridViewColumn Header="Completed" Width="80">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <CheckBox IsChecked="{Binding IsCompleted}" 
-                                                  Command="{Binding DataContext.ToggleTaskStatusCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                                  CommandParameter="{Binding}" 
-                                                  HorizontalAlignment="Center"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-
-                            <!-- Description Column -->
-                            <GridViewColumn Header="Description" 
-                                           DisplayMemberBinding="{Binding Description}" 
-                                           Width="300"/>
-
-                            <!-- Due Date Column -->
-                            <GridViewColumn Header="Due Date" 
-                                           DisplayMemberBinding="{Binding DueDate, StringFormat=yyyy-MM-dd}" 
-                                           Width="100"/>
-
-                            <!-- Priority Column -->
-                            <GridViewColumn Header="Priority" 
-                                           DisplayMemberBinding="{Binding Priority}" 
-                                           Width="80"/>
-
-                            <!-- Actions Column -->
-                            <GridViewColumn Header="Actions" Width="100">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="Delete" 
-                                                Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                                CommandParameter="{Binding}" 
-                                                Margin="2" 
-                                                Padding="5,2"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                        </GridView>
-                    </ListView.View>
-                </ListView>
-            </GroupBox>
+                        <GridViewColumn Header="Actions" Width="100">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Delete" 
+                                            Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                            CommandParameter="{Binding}" 
+                                            Margin="2" Padding="5,2"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
         </Grid>
 
         <!-- Command History Panel -->
-        <GroupBox Grid.Column="1" Header="Command History" Margin="10">
+        <GroupBox Grid.Column="1" Header="Command History (Last 12 Hours)" Width="300" Margin="10">
             <ListView ItemsSource="{Binding CommandHistory}" Margin="5">
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="2"/>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
