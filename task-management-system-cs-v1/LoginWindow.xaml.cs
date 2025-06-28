@@ -3,8 +3,11 @@ using System.Windows.Controls;
 using task_management_system_cs_v1.Services;
 using task_management_system_cs_v1.ViewModels;
 
-namespace task_management_system_cs_v1.Views
+namespace task_management_system_cs_v1
 {
+    /// <summary>
+    /// Interaction logic for LoginWindow.xaml
+    /// </summary>
     public partial class LoginWindow : Window
     {
         public LoginWindow()
