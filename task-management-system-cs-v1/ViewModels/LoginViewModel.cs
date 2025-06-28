@@ -1,14 +1,18 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using task_management_system_cs_v1.Models;
 using task_management_system_cs_v1.Services;
 using task_management_system_cs_v1.Utilities;
-using task_management_system_cs_v1.Views;
 
 namespace task_management_system_cs_v1.ViewModels
 {
+    /// <summary>
+    /// ViewModel for the login/registration functionality
+    /// Handles user authentication and registration logic
+    /// </summary>
     public class LoginViewModel : INotifyPropertyChanged
     {
         private readonly FileService _fileService;
@@ -18,56 +22,38 @@ namespace task_management_system_cs_v1.ViewModels
         private string _registerPassword;
         private string _registerConfirmPassword;
 
+        // Properties with property change notification
         public string Username
         {
             get => _username;
-            set
-            {
-                _username = value;
-                OnPropertyChanged();
-            }
+            set { _username = value; OnPropertyChanged(); }
         }
 
         public string Password
         {
             get => _password;
-            set
-            {
-                _password = value;
-                OnPropertyChanged();
-            }
+            set { _password = value; OnPropertyChanged(); }
         }
 
         public string RegisterUsername
         {
             get => _registerUsername;
-            set
-            {
-                _registerUsername = value;
-                OnPropertyChanged();
-            }
+            set { _registerUsername = value; OnPropertyChanged(); }
         }
 
         public string RegisterPassword
         {
             get => _registerPassword;
-            set
-            {
-                _registerPassword = value;
-                OnPropertyChanged();
-            }
+            set { _registerPassword = value; OnPropertyChanged(); }
         }
 
         public string RegisterConfirmPassword
         {
             get => _registerConfirmPassword;
-            set
-            {
-                _registerConfirmPassword = value;
-                OnPropertyChanged();
-            }
+            set { _registerConfirmPassword = value; OnPropertyChanged(); }
         }
 
+        // Commands
         public ICommand LoginCommand { get; }
         public ICommand RegisterCommand { get; }
 
@@ -86,12 +72,15 @@ namespace task_management_system_cs_v1.ViewModels
                 return;
             }
 
-            var user = new User { Username = Username, Password = Password };
-            if (_fileService.ValidateUser(user))
+            if (_fileService.ValidateUser(new User { Username = Username, Password = Password }))
             {
                 var mainWindow = new MainWindow(_fileService, Username);
                 mainWindow.Show();
-                CloseWindow(parameter);
+
+                if (parameter is Window window)
+                {
+                    window.Close();
+                }
             }
             else
             {
@@ -121,18 +110,11 @@ namespace task_management_system_cs_v1.ViewModels
                 return;
             }
 
-            var newUser = new User { Username = RegisterUsername, Password = RegisterPassword };
-            if (_fileService.RegisterUser(newUser))
+            if (_fileService.RegisterUser(new User { Username = RegisterUsername, Password = RegisterPassword }))
             {
-                MessageBox.Show("Registration successful. Please login with your new credentials.");
+                MessageBox.Show("Registration successful. Please login.");
                 Username = RegisterUsername;
                 Password = RegisterPassword;
-                RegisterUsername = string.Empty;
-                RegisterPassword = string.Empty;
-                RegisterConfirmPassword = string.Empty;
-                OnPropertyChanged(nameof(RegisterUsername));
-                OnPropertyChanged(nameof(RegisterPassword));
-                OnPropertyChanged(nameof(RegisterConfirmPassword));
             }
             else
             {
@@ -155,14 +137,6 @@ namespace task_management_system_cs_v1.ViewModels
             }
 
             return hasLetter && hasNumber;
-        }
-
-        private void CloseWindow(object parameter)
-        {
-            if (parameter is Window window)
-            {
-                window.Close();
-            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

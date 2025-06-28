@@ -4,7 +4,10 @@
              xmlns:local="clr-namespace:task_management_system_cs_v1"
              StartupUri="LoginWindow.xaml">
     <Application.Resources>
+        <!-- Built-in boolean to visibility converter -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+        <!-- Custom boolean to view text converter -->
         <local:BoolToViewTextConverter x:Key="BoolToViewTextConverter"/>
     </Application.Resources>
 </Application>
