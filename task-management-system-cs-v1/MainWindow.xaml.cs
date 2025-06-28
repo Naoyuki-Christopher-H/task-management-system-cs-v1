@@ -1,24 +1,15 @@
-﻿using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+﻿using System.Windows;
+using task_management_system_cs_v1.Services;
+using task_management_system_cs_v1.ViewModels;
 
-namespace task_management_system_cs_v1
+namespace task_management_system_cs_v1.Views
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        public MainWindow(FileService fileService, string username)
         {
             InitializeComponent();
+            DataContext = new MainViewModel(fileService, username);
         }
     }
 }
